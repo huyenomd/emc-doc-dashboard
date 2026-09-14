@@ -1,0 +1,13 @@
+{
+ "v": 1,
+ "kdf": "PBKDF2-SHA256",
+ "users": [
+  {
+   "id": "NorthSCM",
+   "iter": 310000,
+   "salt": "/HFKdOkxMzhtOEAZ5l0+vQ==",
+   "iv": "HpP20cNofGAnVVpK",
+   "wrapped": "VC7SLW4EUptDbm6RDKxXzKIdh27986kyfn3zRH8eUDeXcnLukM9cAN6gInCYMhHe"
+  }
+ ]
+}
