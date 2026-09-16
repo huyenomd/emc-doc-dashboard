@@ -336,6 +336,7 @@ footer strong{color:var(--body-c)}
 </div>
 
 <style>
+  .eol-tag{font-size:10px;font-weight:600;letter-spacing:.04em;padding:1px 5px;border-radius:3px;background:var(--unknown-bg);color:var(--unknown);vertical-align:middle}
   .note-cell{ font-size:11px; line-height:1.45; color:var(--mute); max-width:320px; }
   td.na{ color:var(--mute); font-style:italic; }
 </style>
@@ -410,14 +411,19 @@ footer strong{color:var(--body-c)}
                  .map(function(k){ return counts[k] + ' ' + k; }).join(' · ');
     }
 
-    var attention = emc.expiring + emc.expired + cbhq.signed + cbhq.not_filed;
+    var eolCount = rows.filter(function(r){ return r.eol; }).length;
+    var attention = rows.filter(function(r){
+      return !r.eol && (r.emc_status==='expiring' || r.emc_status==='expired'
+                        || r.cbhq_status==='signed' || r.cbhq_status==='not_filed');
+    }).length;
     var attClass = attention > 0 ? (emc.expired + cbhq.not_filed > 0 ? 'crit' : 'warn') : 'ok';
 
     document.getElementById('kpis').innerHTML =
       kpi('', rows.length, totalLabel, totalSub) +
       kpi('ok', emc.valid, 'EMC còn hiệu lực', emc.expiring+' sắp hết hạn · '+emc.expired+' đã hết hạn') +
       kpi('', cbhq.published, 'CBHQ đã công bố', 'Xác nhận trên cổng NQI') +
-      kpi(attClass, attention, 'Cần theo dõi / xử lý', 'EMC ≤90 ngày hoặc CBHQ tồn đọng');
+      kpi(attClass, attention, 'Cần theo dõi / xử lý',
+          'EMC ≤90 ngày hoặc CBHQ tồn đọng' + (eolCount ? ' · đã trừ '+eolCount+' model EOL' : ''));
 
     document.getElementById('metaCount').textContent =
       activeLine==='all'
@@ -464,20 +470,20 @@ footer strong{color:var(--body-c)}
   // ---- action panel --------------------------------------------------------
   function renderActions(rows){
     var items = [];
-    rows.filter(function(r){ return r.emc_status==='expired'; })
+    rows.filter(function(r){ return !r.eol && r.emc_status==='expired'; })
         .forEach(function(r){ items.push({sort:-1, who:r.model||r.so_giay_chung_nhan,
           desc:'EMC đã hết hạn ngày '+r.ngay_het_hieu_luc+' ('+r.line+')', badge:'crit', txt:'Hết hạn'}); });
 
-    rows.filter(function(r){ return r.emc_status==='expiring'; })
+    rows.filter(function(r){ return !r.eol && r.emc_status==='expiring'; })
         .sort(function(a,b){ return a.days_left-b.days_left; })
         .forEach(function(r){ items.push({sort:r.days_left, who:r.model||r.so_giay_chung_nhan,
           desc:'EMC hết hạn '+r.ngay_het_hieu_luc+' — còn '+r.days_left+' ngày ('+r.line+')', badge:'warn', txt:r.days_left+' ngày'}); });
 
-    rows.filter(function(r){ return r.cbhq_status==='not_filed'; })
+    rows.filter(function(r){ return !r.eol && r.cbhq_status==='not_filed'; })
         .forEach(function(r){ items.push({sort:9998, who:r.model||r.so_giay_chung_nhan,
           desc:'Đã có EMC, chưa có CBHQ — lô nhập mới sau 01/07/2026 cần làm CBHQ ('+r.line+')', badge:'warn', txt:'Chưa CBHQ'}); });
 
-    rows.filter(function(r){ return r.cbhq_status==='signed'; })
+    rows.filter(function(r){ return !r.eol && r.cbhq_status==='signed'; })
         .forEach(function(r){ items.push({sort:9999, who:r.model||r.so_giay_chung_nhan,
           desc:'Đã ký bản đăng ký '+r.ngay_ky_cbhq+', chưa có xác nhận công bố ('+r.line+')', badge:'warn', txt:'Đã ký'}); });
 
@@ -512,6 +518,17 @@ footer strong{color:var(--body-c)}
     var q = qInput.value.trim();
     var list = rows.filter(function(r){ return matchesFilter(r) && matchesQuery(r,q); });
 
+    // Sắp xếp mặc định: còn hiệu lực -> sắp hết hạn -> đã hết hạn (xuống cuối).
+    var EMC_RANK = { valid:0, expiring:1, unknown:2, expired:3 };
+    if(!sortKey){
+      list = list.slice().sort(function(a,b){
+        var d = (EMC_RANK[a.emc_status]||0) - (EMC_RANK[b.emc_status]||0);
+        if(d) return d;
+        if(a.line !== b.line) return a.line < b.line ? -1 : 1;
+        return (a.model||'') < (b.model||'') ? -1 : 1;
+      });
+    }
+
     if(sortKey){
       list = list.slice().sort(function(a,b){
         var av=(a[sortKey]||'').toString(), bv=(b[sortKey]||'').toString();
@@ -527,7 +544,7 @@ footer strong{color:var(--body-c)}
     tbody.innerHTML = list.map(function(r){
       return '<tr>'+
         '<td><span class="line-tag">'+(LINE_LABEL[r.line]||r.line)+'</span></td>'+
-        (r.model ? '<td class="key-cell">'+r.model+'</td>' : '<td class="na">theo danh mục đính kèm</td>')+
+        (r.model ? '<td class="key-cell">'+r.model+(r.eol?' <span class="eol-tag">EOL</span>':'')+'</td>' : '<td class="na">theo danh mục đính kèm</td>')+
         '<td class="mono">'+dash(r.so_giay_chung_nhan)+'</td>'+
         '<td>'+dash(r.ngay_chung_nhan)+'</td>'+
         '<td>'+dash(r.ngay_het_hieu_luc)+'</td>'+
