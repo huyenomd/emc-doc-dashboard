@@ -133,6 +133,30 @@ h1,h2,h3{
 
 .chart-row{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
 .chart-row svg{flex:none}
+/* biểu đồ nhỏ tách theo dòng sản phẩm (small multiples) */
+.smul{display:grid;grid-template-columns:repeat(auto-fit,minmax(128px,1fr));gap:12px;margin:6px 0 0}
+.smul .cell{border:1px solid var(--panel-line);border-radius:9px;padding:11px 12px}
+.smul .hd{display:flex;justify-content:space-between;align-items:baseline;gap:6px;margin-bottom:10px}
+.smul .hd b{font-size:13px;color:var(--ink);font-weight:700}
+.smul .hd s{text-decoration:none;font-size:11.5px;color:var(--mute);font-variant-numeric:tabular-nums}
+.smul .mini{display:flex;flex-direction:column;gap:6px}
+.smul .mrow{display:grid;grid-template-columns:1fr 26px;gap:7px;align-items:center}
+.smul .mtrack{height:7px;border-radius:2px;background:var(--panel-line);overflow:hidden}
+.smul .mfill{height:100%;border-radius:2px;transition:width .35s ease}
+.smul .mn{font-size:11px;color:var(--mute);text-align:right;font-variant-numeric:tabular-nums}
+.smul .eolnote{margin-top:9px;padding-top:8px;border-top:1px solid var(--panel-line);
+  font-size:11px;color:var(--mute)}
+.smul .eolnote b{color:var(--ink);font-weight:700}
+.smleg{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:14px;font-size:12px}
+.smleg span{display:inline-flex;align-items:center;gap:6px}
+.smleg i{width:10px;height:10px;border-radius:3px;flex:none}
+.smleg b{color:var(--ink);font-weight:600}
+.smleg s{text-decoration:none;color:var(--mute);font-variant-numeric:tabular-nums}
+.bars-total{margin-top:14px;padding-top:12px;border-top:1px solid var(--panel-line);font-size:12px;color:var(--mute)}
+.bars-total b{color:var(--ink);font-weight:700;font-size:15px;font-variant-numeric:tabular-nums}
+.eol-tag{font-size:10px;font-weight:600;letter-spacing:.04em;padding:1px 5px;border-radius:3px;background:var(--unknown-bg);color:var(--unknown);vertical-align:middle}
+.note-cell{ font-size:11px; line-height:1.45; color:var(--mute); max-width:320px; }
+td.na{ color:var(--mute); font-style:italic; }
 .legend{display:flex;flex-direction:column;gap:10px;font-size:13px;flex:1;min-width:160px}
 .legend .item{display:flex;align-items:center;gap:9px}
 .legend .swatch{width:11px;height:11px;border-radius:3px;flex:none}
@@ -177,8 +201,18 @@ td.na{color:var(--mute);font-style:italic;font-variant-numeric:normal}
 .line-tag{display:inline-block;font-size:10.5px;font-weight:600;padding:2px 7px;border-radius:4px;background:var(--panel-line);color:var(--body-c);letter-spacing:.02em}
 .row-count{font-size:12px;color:var(--mute);margin-top:10px}
 
-footer{max-width:1320px;margin:calc(var(--margin)*1.1) auto 0;font-size:12px;color:var(--mute);border-top:1px solid var(--line);padding-top:16px;line-height:1.7}
+footer{max-width:1320px;margin:calc(var(--margin)*1.1) auto 0;font-size:12px;color:var(--mute);border-top:1px solid var(--line);padding-top:16px;line-height:1.65}
 footer strong{color:var(--body-c)}
+footer h3{font-size:12px;font-weight:700;color:var(--body-c);margin:0 0 7px;
+  text-transform:uppercase;letter-spacing:.04em}
+footer .fblock{margin-bottom:18px}
+footer .fblock:last-child{margin-bottom:0}
+footer p{margin:0 0 5px}
+footer p:last-child{margin-bottom:0}
+footer .fline{display:grid;grid-template-columns:52px 1fr;gap:10px;margin:0 0 6px;align-items:start}
+footer .fline:last-child{margin-bottom:0}
+footer .fline b{color:var(--ink);font-weight:700}
+@media (max-width:640px){footer .fline{grid-template-columns:1fr;gap:1px}}
 
 /* ---- Unlock gate -------------------------------------------------------------
    The dataset on disk is AES-GCM ciphertext. This form derives the key from the
@@ -251,7 +285,7 @@ footer strong{color:var(--body-c)}
       </div>
     </div>
     <div class="meta">
-      Cập nhật đến <strong>16/09/2026</strong><br>
+      Cập nhật đến <strong>17/09/2026</strong><br>
       <span id="metaCount"></span>
     </div>
   </div>
@@ -271,11 +305,10 @@ footer strong{color:var(--body-c)}
   <div class="grid2">
     <div class="card">
       <h2>Tình trạng hiệu lực EMC</h2>
-      <div class="cap">Theo ngày hết hạn so với hôm nay — còn &gt;90 ngày / ≤90 ngày / đã hết hạn / chưa trích xuất được hạn</div>
-      <div class="chart-row">
-        <svg id="donut" width="132" height="132" viewBox="0 0 132 132" role="img" aria-label="Biểu đồ trạng thái hiệu lực EMC"></svg>
-        <div class="legend" id="legend"></div>
-      </div>
+      <div class="cap">Tách theo dòng sản phẩm — bốn thanh mỗi ô theo thứ tự: còn hiệu lực / sắp hết hạn ≤90 ngày / đã hết hạn / chưa trích xuất được hạn</div>
+      <div class="smul" id="emcbars" role="img" aria-label="Biểu đồ trạng thái hiệu lực EMC tách theo dòng sản phẩm"></div>
+      <div class="smleg" id="emclabs"></div>
+      <div class="bars-total" id="barstotal"></div>
     </div>
 
     <div class="card">
@@ -323,15 +356,37 @@ footer strong{color:var(--body-c)}
   </div>
 
   <footer>
-    <strong>RAC</strong> — hồ sơ EMC (QUACERT / Quatest 1) và Bản đăng ký công bố hợp quy nội bộ; ngày công bố và mã văn bản ghi nhận xác nhận qua mã QR trên Thông báo ghi nhận CBHQ, đối chiếu cổng NQI. Ba model IDH09M2, IDH12M2, IDH18M2 có hai mã văn bản ghi nhận do hồ sơ được nộp lại.
-    <strong>CAC</strong> — 67 Thông báo ghi nhận CBHQ trong folder SAC, đối chiếu trực tiếp với bản ghi trên cổng NQI. Tên model lấy từ giấy chứng nhận EMC trong folder EMC — đã tách đủ tên model cho cả 67/67 hồ sơ (8 giấy QUACERT trong file gộp và 4 giấy Quatest bản scan được đọc trực tiếp từ phụ lục phạm vi chứng nhận). Mỗi model được tách thành một dòng riêng. Cột ngày ký bản đăng ký của CAC chưa có dữ liệu.
-    <strong>WM</strong> — 18 Thông báo ghi nhận CBHQ (công bố 11/09/2026), chứng nhận EMC do Phúc Gia cấp; tên model lấy từ tên file, số giấy chứng nhận và ngày hiệu lực đối chiếu cổng NQI.
-    <strong>MWO</strong> — 3 model công bố ngày 15/09/2026, chung giấy chứng nhận VIC/24.HQ/12.09.0220 của VietnamControl.
-    <strong>REF</strong> — 57 Thông báo ghi nhận CBHQ trong folder "EMC REF &amp; VCC/REF_CBHQ" (công bố 11–14/09/2026); tên model lấy từ tên file, mã hồ sơ HQ đọc từ nội dung thông báo, số giấy chứng nhận EMC / trung tâm / ngày hiệu lực tra từ cổng NQI theo mã hồ sơ. Phần lớn do Phúc Gia cấp, 6 model dòng LB do QUACERT cấp. Model B33BG được chỉnh ngày hết hiệu lực về 02/07/2029 theo bản gia hạn của giấy PGC-QC09-L001-260620 (SCM xác nhận 16/09/2026) — bản ghi trên cổng NQI vẫn còn hạn cũ 02/09/2026. Cột ngày ký bản đăng ký chưa có dữ liệu.
-    <strong>VCC</strong> — 3 model máy hút bụi VK7317GHTP (B/R/S) chung giấy chứng nhận PGC-QC09-L001-250609.1 của Phúc Gia, công bố 15/09/2026. Model T2310VBTN nằm cùng folder nhưng cổng NQI ghi nhận là máy giặt nên được xếp vào dòng WM.
-    <strong>Về trạng thái "Chưa có CBHQ"</strong> — EMC là bắt buộc với mọi model. Quy định công bố hợp quy (CBHQ) áp dụng từ 01/07/2026, thay cho việc đăng ký kiểm tra chất lượng theo từng lô hàng. Hàng nhập trước 01/07/2026 đã đăng ký kiểm tra chất lượng theo lô, còn tồn kho thì bán tiếp. Vì vậy model có EMC mà chưa có CBHQ không phải là thiếu hồ sơ — đây là danh sách nhắc việc: lô nhập mới sau 01/07/2026 phải làm CBHQ trước khi thông quan. Ngày cấp / ngày hết hạn EMC của nhóm này được đọc trực tiếp từ bản scan giấy chứng nhận (16/09/2026): 63 model REF từ folder REF_CQ, 12 model CAC từ folder SAC EMC Thai models part 1. Toàn bộ 425 model trên dashboard hiện đã có đủ ngày hiệu lực EMC. Tên model lấy theo giấy chứng nhận EMC / Thông báo ghi nhận CBHQ, không lấy theo tên file (tên file có thể gõ nhầm).
-    Trạng thái EMC tính động theo ngày mở trang, ngưỡng "sắp hết hạn" là 90 ngày trước khi hết hiệu lực.
-    Bản web này dùng phông hệ thống thay cho phông LG EI (phông LG EI có bản quyền riêng của LG Electronics, không đính kèm trong trang công khai) — bố cục và bảng màu vẫn theo LG BI Guidelines V5.2; bảng màu trạng thái xanh/vàng/đỏ nằm ngoài bảng màu lõi LG, là lựa chọn riêng để đảm bảo tương phản và dễ nhận biết.
+
+    <div class="fblock">
+      <h3>Quy định áp dụng</h3>
+      <p><strong>EMC</strong> — bắt buộc với mọi model.</p>
+      <p><strong>Công bố hợp quy (CBHQ)</strong> — áp dụng từ 01/07/2026, thay cho việc đăng ký kiểm tra chất lượng theo từng lô hàng. Hàng nhập trước 01/07/2026 đã đăng ký theo lô, còn tồn kho thì bán tiếp.</p>
+      <p><strong>Ghi chú "Đã có EMC, chưa có CBHQ"</strong> — không phải thiếu hồ sơ, mà là nhắc việc: lô nhập mới sau 01/07/2026 phải làm CBHQ trước khi bán hàng.</p>
+    </div>
+
+    <div class="fblock">
+      <h3>Nguồn dữ liệu theo dòng sản phẩm</h3>
+
+      <div class="fline"><b>REF</b><span>57 Thông báo ghi nhận CBHQ (công bố 11–14/09/2026); số giấy EMC, trung tâm và ngày hiệu lực tra từ cổng NQI theo mã hồ sơ. Phần lớn do Phúc Gia cấp, 6 model dòng LB do QUACERT. B33BG và B33BGA đã chỉnh hạn về 02/07/2029 theo bản gia hạn của giấy PGC-QC09-L001-260620 (SCM xác nhận 16/09/2026) — cổng NQI vẫn ghi hạn cũ 02/09/2026. Chưa có ngày ký bản đăng ký.</span></div>
+
+      <div class="fline"><b>WM</b><span>18 Thông báo ghi nhận CBHQ (công bố 11/09/2026), EMC do Phúc Gia cấp, đối chiếu cổng NQI. Model T2310VBTN nằm trong folder VCC nhưng cổng NQI ghi nhận là máy giặt nên xếp vào WM.</span></div>
+
+      <div class="fline"><b>MWO</b><span>3 model công bố 15/09/2026, chung giấy chứng nhận VIC/24.HQ/12.09.0220 của VietnamControl.</span></div>
+
+      <div class="fline"><b>VCC</b><span>3 model máy hút bụi VK7317GHTP (B/R/S) chung giấy chứng nhận PGC-QC09-L001-250609.1 của Phúc Gia, công bố 15/09/2026.</span></div>
+
+      <div class="fline"><b>RAC</b><span>Hồ sơ EMC (QUACERT / Quatest 1) và Bản đăng ký công bố hợp quy nội bộ; ngày công bố và mã văn bản ghi nhận xác nhận qua mã QR trên Thông báo, đối chiếu cổng NQI. Ba model IDH09M2, IDH12M2, IDH18M2 có hai mã văn bản ghi nhận do hồ sơ được nộp lại.</span></div>
+
+      <div class="fline"><b>CAC</b><span>67 Thông báo ghi nhận CBHQ, đối chiếu trực tiếp với bản ghi trên cổng NQI. Tên model đọc từ phụ lục phạm vi chứng nhận của giấy EMC — đủ 67/67 hồ sơ, mỗi model một dòng riêng. Chưa có ngày ký bản đăng ký.</span></div>
+    </div>
+
+    <div class="fblock">
+      <h3>Ghi chú kỹ thuật</h3>
+      <p>Ngày cấp và ngày hết hạn EMC của nhóm chưa có CBHQ được đọc trực tiếp từ bản scan giấy chứng nhận (16/09/2026): 63 model REF và 12 model CAC. Toàn bộ 425 model trên dashboard hiện đã có đủ ngày hiệu lực EMC.</p>
+      <p>Trạng thái EMC tính động theo ngày mở trang; ngưỡng "sắp hết hạn" là 90 ngày trước khi hết hiệu lực.</p>
+      <p>Bản web này dùng phông hệ thống thay cho phông LG EI (phông LG EI có bản quyền riêng của LG Electronics, không đính kèm trong trang công khai) — bố cục và bảng màu vẫn theo LG BI Guidelines V5.2. Bảng màu trạng thái xanh/vàng/đỏ nằm ngoài bảng màu lõi LG, là lựa chọn riêng để đảm bảo tương phản và dễ nhận biết.</p>
+    </div>
+
   </footer>
 </div>
 
@@ -435,36 +490,55 @@ footer strong{color:var(--body-c)}
     return '<div class="kpi '+cls+'"><div class="num">'+num+'</div><div class="lbl">'+lbl+'</div><div class="sub">'+sub+'</div></div>';
   }
 
-  // ---- donut ---------------------------------------------------------------
-  function renderDonut(emc){
-    var parts = [
-      {n: emc.valid,    c:'var(--ok)',   label:'Còn hiệu lực'},
-      {n: emc.expiring, c:'var(--warn)', label:'Sắp hết hạn (≤90 ngày)'},
-      {n: emc.expired,  c:'var(--crit)', label:'Đã hết hạn'},
-      {n: emc.unknown,  c:'var(--unknown)', label:'Chưa rõ hạn EMC'}
-    ];
-    var total = parts.reduce(function(a,p){return a+p.n;},0);
-    var size=132, stroke=20, r=(size-stroke)/2, c=size/2, C=2*Math.PI*r, off=0, segs='';
+  // ---- biểu đồ nhỏ tách theo dòng sản phẩm (kiểu 5) --------------------------
+  var STATUS_META = [
+    {k:'valid',    c:'var(--ok)',      label:'Còn hiệu lực', sub:''},
+    {k:'expiring', c:'var(--warn)',    label:'Sắp hết hạn',  sub:'≤90 ngày'},
+    {k:'expired',  c:'var(--crit)',    label:'Đã hết hạn',   sub:''},
+    {k:'unknown',  c:'var(--unknown)', label:'Chưa rõ hạn',  sub:'chưa trích xuất'}
+  ];
+  var LINE_ORDER = ['REF','WM','MWO','VCC','RAC','CAC'];
 
-    if(total===0){
-      segs = '<circle cx="'+c+'" cy="'+c+'" r="'+r+'" fill="none" stroke="var(--panel-line)" stroke-width="'+stroke+'"/>';
-    } else {
-      parts.forEach(function(p){
-        if(p.n<=0) return;
-        var dash = p.n/total*C;
-        segs += '<circle cx="'+c+'" cy="'+c+'" r="'+r+'" fill="none" stroke="'+p.c+'" stroke-width="'+stroke+
-                '" stroke-dasharray="'+dash.toFixed(2)+' '+(C-dash).toFixed(2)+'" stroke-dashoffset="'+(-off).toFixed(2)+
-                '" transform="rotate(-90 '+c+' '+c+')"/>';
-        off += dash;
-      });
-    }
-    segs += '<text x="'+c+'" y="'+(c-3)+'" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif" font-weight="700" font-size="22" fill="var(--ink)">'+total+'</text>';
-    segs += '<text x="'+c+'" y="'+(c+15)+'" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif" font-size="10" fill="var(--mute)">'+(activeLine==='all'?'bản ghi':'model')+'</text>';
-    document.getElementById('donut').innerHTML = segs;
+  function renderDonut(emc, rows){
+    var unit = (activeLine==='all' ? 'bản ghi' : 'model');
 
-    document.getElementById('legend').innerHTML = parts.map(function(p){
-      return '<div class="item"><span class="swatch" style="background:'+p.c+'"></span><span class="lv">'+p.label+'</span><span class="ln">'+p.n+'</span></div>';
+    // gom theo dòng sản phẩm
+    var byL = {};
+    rows.forEach(function(r){
+      var b = byL[r.line] || (byL[r.line] = {valid:0,expiring:0,expired:0,unknown:0,eol:0,tot:0});
+      b[r.emc_status] = (b[r.emc_status]||0) + 1;
+      if(r.eol) b.eol++;
+      b.tot++;
+    });
+    var lines = LINE_ORDER.filter(function(L){ return byL[L]; });
+
+    document.getElementById('emcbars').innerHTML = lines.map(function(L){
+      var b  = byL[L];
+      var mx = Math.max(b.valid, b.expiring, b.expired, b.unknown) || 1;
+      var mini = STATUS_META.map(function(s){
+        return '<div class="mrow" title="'+L+' — '+s.label+': '+b[s.k]+' '+unit+'">'+
+                 '<div class="mtrack"><div class="mfill" style="width:'+
+                   (b[s.k]/mx*100).toFixed(1)+'%;background:'+s.c+'"></div></div>'+
+                 '<span class="mn">'+b[s.k]+'</span>'+
+               '</div>';
+      }).join('');
+      return '<div class="cell">'+
+               '<div class="hd"><b>'+L+'</b><s>'+b.tot+'</s></div>'+
+               '<div class="mini">'+mini+'</div>'+
+               '<div class="eolnote">EOL: '+(b.eol ? '<b>'+b.eol+'</b> model' : 'không có')+'</div>'+
+             '</div>';
     }).join('');
+
+    var total = STATUS_META.reduce(function(a,s){ return a + (emc[s.k]||0); }, 0);
+    document.getElementById('emclabs').innerHTML = STATUS_META.map(function(s){
+      return '<span><i style="background:'+s.c+'"></i><b>'+s.label+
+             (s.sub ? ' ('+s.sub+')' : '')+'</b> <s>'+(emc[s.k]||0)+'</s></span>';
+    }).join('');
+
+    var eolTot = rows.filter(function(r){ return r.eol; }).length;
+    document.getElementById('barstotal').innerHTML =
+      'Tổng <b>'+total+'</b> '+unit +
+      (eolTot ? ' · trong đó <b>'+eolTot+'</b> model EOL không cần theo dõi tiếp' : '');
   }
 
   // ---- action panel --------------------------------------------------------
@@ -564,7 +638,7 @@ footer strong{color:var(--body-c)}
   function renderAll(){
     var rows = byLine();
     var agg = renderKpis(rows);
-    renderDonut(agg.emc);
+    renderDonut(agg.emc, rows);
     renderActions(rows);
     renderTable(rows);
   }
