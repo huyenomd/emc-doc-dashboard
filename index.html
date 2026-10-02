@@ -213,6 +213,17 @@ footer .fline{display:grid;grid-template-columns:52px 1fr;gap:10px;margin:0 0 6p
 footer .fline:last-child{margin-bottom:0}
 footer .fline b{color:var(--ink);font-weight:700}
 @media (max-width:640px){footer .fline{grid-template-columns:1fr;gap:1px}}
+footer .fscope{margin:0 0 8px;padding-left:18px}
+footer .fscope li{margin:0 0 2px}
+footer .fscope b{color:var(--ink);font-weight:700;display:inline-block;min-width:38px}
+/* ---- chọn ngôn ngữ / language switch ---- */
+html:not([data-ui-lang="en"]) .l-en{display:none!important}
+html[data-ui-lang="en"] .l-vi{display:none!important}
+.langsw{display:inline-flex;border:1px solid var(--line);border-radius:999px;overflow:hidden;margin-bottom:8px;background:var(--panel)}
+.langsw button{font-family:inherit;font-size:12px;font-weight:600;padding:5px 12px;border:0;background:transparent;color:var(--mute);cursor:pointer;line-height:1.2}
+.langsw button + button{border-left:1px solid var(--line)}
+.langsw button[aria-pressed="true"]{background:var(--ink);color:var(--ground)}
+.langsw button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
 
 /* ---- Unlock gate -------------------------------------------------------------
    The dataset on disk is AES-GCM ciphertext. This form derives the key from the
@@ -228,6 +239,9 @@ footer .fline b{color:var(--ink);font-weight:700}
   padding:32px 30px;width:100%;max-width:400px;
 }
 #gate .mark{display:flex;align-items:center;gap:14px;margin-bottom:22px}
+#gate .langsw button{width:auto;margin:0;padding:4px 10px;font-size:11.5px;border-radius:0;background:transparent;color:var(--mute)}
+#gate .langsw button[aria-pressed="true"]{background:var(--ink);color:var(--ground)}
+#gate .langsw button + button{border-left:1px solid var(--line)}
 #gate .mark img{height:30px;width:auto;display:block}
 #gate h2{font-size:16px;margin:0;line-height:1.25}
 #gate .sub{font-size:12.5px;color:var(--mute);margin:3px 0 0}
@@ -251,26 +265,75 @@ footer .fline b{color:var(--ink);font-weight:700}
   border-top:1px solid var(--panel-line);padding-top:14px}
 </style>
 
+<script>
+/* Ngôn ngữ giao diện: ?lang=en trên URL > lựa chọn đã lưu > mặc định tiếng Việt. */
+(function(){
+  var KEY = 'emcDocDashLang';
+  function pick(){
+    try { var q = new URLSearchParams(location.search).get('lang'); if (q === 'en' || q === 'vi') return q; } catch(e){}
+    try { var s = localStorage.getItem(KEY); if (s === 'en' || s === 'vi') return s; } catch(e){}
+    return 'vi';
+  }
+  var I = window.__i18n = { lang: pick(), subs: [] };
+  document.documentElement.setAttribute('data-ui-lang', I.lang);
+  document.documentElement.setAttribute('lang', I.lang);
+  I.apply = function(){
+    var h = document.documentElement;
+    h.setAttribute('data-ui-lang', I.lang);
+    h.setAttribute('lang', I.lang);
+    Array.prototype.forEach.call(document.querySelectorAll('[data-ph-vi]'), function(el){
+      el.setAttribute('placeholder', el.getAttribute('data-ph-' + I.lang));
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('[data-aria-vi]'), function(el){
+      el.setAttribute('aria-label', el.getAttribute('data-aria-' + I.lang));
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('[data-setlang]'), function(b){
+      b.setAttribute('aria-pressed', b.getAttribute('data-setlang') === I.lang ? 'true' : 'false');
+    });
+  };
+  I.set = function(l){
+    if (l !== 'vi' && l !== 'en') return;
+    I.lang = l;
+    try { localStorage.setItem(KEY, l); } catch(e){}
+    I.apply();
+    I.subs.forEach(function(f){ try { f(l); } catch(e){} });
+  };
+  I.on = function(f){ I.subs.push(f); };
+  document.addEventListener('click', function(e){
+    var b = e.target && e.target.closest ? e.target.closest('[data-setlang]') : null;
+    if (b) I.set(b.getAttribute('data-setlang'));
+  });
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', I.apply);
+  else setTimeout(I.apply, 0);
+})();
+</script>
+
 
 <div id="gate">
   <div class="box">
     <div class="mark">
       <img src="lg-logo.png" alt="LG Electronics">
-      <div>
+      <div style="flex:1">
         <h2>EMC &amp; DoC Dashboard</h2>
         <p class="sub">VH North SCM</p>
+      </div>
+      <div class="langsw" role="group" aria-label="Ngôn ngữ / Language" style="margin:0">
+        <button type="button" data-setlang="vi" aria-pressed="true" title="Tiếng Việt">VI</button>
+        <button type="button" data-setlang="en" aria-pressed="false" title="English">EN</button>
       </div>
     </div>
     <form id="gateForm" autocomplete="off">
       <label for="uid">ID</label>
       <input type="text" id="uid" name="uid" autocomplete="username" required>
-      <label for="pw" style="margin-top:14px">Mật khẩu</label>
+      <label for="pw" style="margin-top:14px"><span class="l-vi">Mật khẩu</span><span class="l-en">Password</span></label>
       <input type="password" id="pw" name="pw" autocomplete="current-password" required>
-      <button type="submit" id="gateBtn">Mở dashboard</button>
+      <button type="submit" id="gateBtn"><span class="l-vi">Mở dashboard</span><span class="l-en">Open dashboard</span></button>
       <p class="msg" id="gateMsg" role="status" aria-live="polite"></p>
     </form>
-    <p class="foot">Dữ liệu trong trang được mã hóa. Mật khẩu chỉ dùng để giải mã ngay trên
-    trình duyệt của bạn, không gửi đi đâu cả. Liên hệ VH North SCM nếu cần cấp mật khẩu.</p>
+    <p class="foot"><span class="l-vi">Dữ liệu trong trang được mã hóa. Mật khẩu chỉ dùng để giải mã ngay trên
+    trình duyệt của bạn, không gửi đi đâu cả. Liên hệ VH North SCM nếu cần cấp mật khẩu.</span><span class="l-en">The data on this
+    page is encrypted. Your password is only used to decrypt it in your own browser and is never sent anywhere.
+    Contact VH North SCM if you need a password.</span></p>
   </div>
 </div>
 
@@ -285,68 +348,78 @@ footer .fline b{color:var(--ink);font-weight:700}
       </div>
     </div>
     <div class="meta">
-      Cập nhật đến <strong>17/09/2026</strong><br>
+      <div class="langsw" role="group" aria-label="Ngôn ngữ / Language">
+        <button type="button" data-setlang="vi" aria-pressed="true" title="Tiếng Việt">VI</button>
+        <button type="button" data-setlang="en" aria-pressed="false" title="English">EN</button>
+      </div><br>
+      <span class="l-vi">Cập nhật đến</span><span class="l-en">Updated</span> <strong>30/09/2026</strong><br>
       <span id="metaCount"></span>
     </div>
   </div>
 
   <div class="lines" id="lines">
-    <button class="line-pill" data-line="all" aria-pressed="true">Tất cả</button>
-    <button class="line-pill" data-line="REF" aria-pressed="false">REF — Tủ lạnh &amp; tủ đông</button>
-    <button class="line-pill" data-line="WM" aria-pressed="false">WM — Máy giặt</button>
-    <button class="line-pill" data-line="MWO" aria-pressed="false">MWO — Lò vi sóng</button>
-    <button class="line-pill" data-line="VCC" aria-pressed="false">VCC — Máy hút bụi</button>
-    <button class="line-pill" data-line="RAC" aria-pressed="false">RAC — Điều hòa dân dụng</button>
-    <button class="line-pill" data-line="CAC" aria-pressed="false">CAC — Điều hòa thương mại</button>
+    <button class="line-pill" data-line="all" aria-pressed="true"><span class="l-vi">Tất cả</span><span class="l-en">All</span></button>
+    <button class="line-pill" data-line="REF" aria-pressed="false">REF — <span class="l-vi">Tủ lạnh &amp; tủ đông</span><span class="l-en">Refrigerators &amp; freezers</span></button>
+    <button class="line-pill" data-line="WM" aria-pressed="false">WM — <span class="l-vi">Máy giặt</span><span class="l-en">Washing machines</span></button>
+    <button class="line-pill" data-line="MWO" aria-pressed="false">MWO — <span class="l-vi">Lò vi sóng</span><span class="l-en">Microwave ovens</span></button>
+    <button class="line-pill" data-line="VCC" aria-pressed="false">VCC — <span class="l-vi">Máy hút bụi</span><span class="l-en">Vacuum cleaners</span></button>
+    <button class="line-pill" data-line="RAC" aria-pressed="false">RAC — <span class="l-vi">Điều hòa dân dụng</span><span class="l-en">Residential air conditioners</span></button>
+    <button class="line-pill" data-line="CAC" aria-pressed="false">CAC — <span class="l-vi">Điều hòa thương mại</span><span class="l-en">Commercial air conditioners</span></button>
   </div>
 
   <div class="kpis" id="kpis"></div>
 
   <div class="grid2">
     <div class="card">
-      <h2>Tình trạng hiệu lực EMC</h2>
-      <div class="cap">Tách theo dòng sản phẩm — bốn thanh mỗi ô theo thứ tự: còn hiệu lực / sắp hết hạn ≤90 ngày / đã hết hạn / chưa trích xuất được hạn</div>
-      <div class="smul" id="emcbars" role="img" aria-label="Biểu đồ trạng thái hiệu lực EMC tách theo dòng sản phẩm"></div>
+      <h2><span class="l-vi">Tình trạng hiệu lực EMC</span><span class="l-en">EMC validity status</span></h2>
+      <div class="cap"><span class="l-vi">Tách theo dòng sản phẩm — bốn thanh mỗi ô theo thứ tự: còn hiệu lực / sắp hết hạn ≤90 ngày / đã hết hạn / chưa trích xuất được hạn</span><span class="l-en">By product line — four bars per panel, in order: valid / expiring within 90 days / expired / expiry date not extracted</span></div>
+      <div class="smul" id="emcbars" role="img"
+           data-aria-vi="Biểu đồ trạng thái hiệu lực EMC tách theo dòng sản phẩm"
+           data-aria-en="EMC validity status by product line"
+           aria-label="Biểu đồ trạng thái hiệu lực EMC tách theo dòng sản phẩm"></div>
       <div class="smleg" id="emclabs"></div>
       <div class="bars-total" id="barstotal"></div>
     </div>
 
     <div class="card">
-      <h2>Việc cần xử lý</h2>
-      <div class="cap">EMC sắp hết hạn hoặc đã hết hạn, và hồ sơ công bố hợp quy còn tồn đọng</div>
+      <h2><span class="l-vi">Việc cần xử lý</span><span class="l-en">Action items</span></h2>
+      <div class="cap"><span class="l-vi">EMC sắp hết hạn hoặc đã hết hạn, và hồ sơ công bố hợp quy còn tồn đọng</span><span class="l-en">EMC expiring or expired, and pending Declaration of Conformity filings</span></div>
       <div class="action-list" id="actions"></div>
     </div>
   </div>
 
   <div class="table-card">
     <div class="table-head">
-      <h2>Danh sách chi tiết</h2>
+      <h2><span class="l-vi">Danh sách chi tiết</span><span class="l-en">Detailed list</span></h2>
       <div class="controls">
-        <input type="search" id="q" placeholder="Tìm model, số GCN, mã văn bản…" aria-label="Tìm kiếm">
-        <button class="chip" data-filter="all" aria-pressed="true">Tất cả</button>
-        <button class="chip" data-filter="valid" aria-pressed="false">Còn hiệu lực</button>
-        <button class="chip" data-filter="expiring" aria-pressed="false">Sắp hết hạn</button>
-        <button class="chip" data-filter="expired" aria-pressed="false">Hết hạn</button>
-        <button class="chip" data-filter="not_filed" aria-pressed="false">Chưa có CBHQ</button>
-        <button class="chip" data-filter="signed" aria-pressed="false">Đã ký, chưa công bố</button>
+        <input type="search" id="q"
+               data-ph-vi="Tìm model, số GCN, mã văn bản…" data-ph-en="Search model, certificate no., reference no.…"
+               placeholder="Tìm model, số GCN, mã văn bản…"
+               data-aria-vi="Tìm kiếm" data-aria-en="Search" aria-label="Tìm kiếm">
+        <button class="chip" data-filter="all" aria-pressed="true"><span class="l-vi">Tất cả</span><span class="l-en">All</span></button>
+        <button class="chip" data-filter="valid" aria-pressed="false"><span class="l-vi">Còn hiệu lực</span><span class="l-en">Valid</span></button>
+        <button class="chip" data-filter="expiring" aria-pressed="false"><span class="l-vi">Sắp hết hạn</span><span class="l-en">Expiring</span></button>
+        <button class="chip" data-filter="expired" aria-pressed="false"><span class="l-vi">Hết hạn</span><span class="l-en">Expired</span></button>
+        <button class="chip" data-filter="not_filed" aria-pressed="false"><span class="l-vi">Chưa có CBHQ</span><span class="l-en">No DoC yet</span></button>
+        <button class="chip" data-filter="signed" aria-pressed="false"><span class="l-vi">Đã ký, chưa công bố</span><span class="l-en">Signed, not published</span></button>
       </div>
     </div>
     <div class="table-scroll">
       <table id="tbl">
         <thead>
           <tr>
-            <th data-key="line">Dòng</th>
+            <th data-key="line"><span class="l-vi">Dòng</span><span class="l-en">Line</span></th>
             <th data-key="model">Model</th>
-            <th data-key="so_giay_chung_nhan">Số GCN EMC</th>
-            <th data-key="ngay_chung_nhan">Ngày cấp EMC</th>
-            <th data-key="ngay_het_hieu_luc">Hết hạn EMC</th>
-            <th data-key="emc_status">Trạng thái EMC</th>
-            <th data-key="trung_tam_chung_nhan">Trung tâm</th>
-            <th data-key="ngay_ky_cbhq">Ngày ký CBHQ</th>
-            <th data-key="ngay_cong_bo">Ngày công bố</th>
-            <th data-key="cbhq_status">Trạng thái CBHQ</th>
-            <th data-key="ma_van_ban_ghi_nhan">Mã văn bản ghi nhận</th>
-            <th data-key="ghi_chu">Ghi chú</th>
+            <th data-key="so_giay_chung_nhan"><span class="l-vi">Số GCN EMC</span><span class="l-en">EMC cert. no.</span></th>
+            <th data-key="ngay_chung_nhan"><span class="l-vi">Ngày cấp EMC</span><span class="l-en">EMC issued</span></th>
+            <th data-key="ngay_het_hieu_luc"><span class="l-vi">Hết hạn EMC</span><span class="l-en">EMC expiry</span></th>
+            <th data-key="emc_status"><span class="l-vi">Trạng thái EMC</span><span class="l-en">EMC status</span></th>
+            <th data-key="trung_tam_chung_nhan"><span class="l-vi">Trung tâm</span><span class="l-en">Cert. body</span></th>
+            <th data-key="ngay_ky_cbhq"><span class="l-vi">Ngày ký CBHQ</span><span class="l-en">DoC signed</span></th>
+            <th data-key="ngay_cong_bo"><span class="l-vi">Ngày công bố</span><span class="l-en">DoC published</span></th>
+            <th data-key="cbhq_status"><span class="l-vi">Trạng thái CBHQ</span><span class="l-en">DoC status</span></th>
+            <th data-key="ma_van_ban_ghi_nhan"><span class="l-vi">Mã văn bản ghi nhận</span><span class="l-en">Acknowledgement ref.</span></th>
+            <th data-key="ghi_chu"><span class="l-vi">Ghi chú</span><span class="l-en">Notes</span></th>
           </tr>
         </thead>
         <tbody></tbody>
@@ -357,34 +430,72 @@ footer .fline b{color:var(--ink);font-weight:700}
 
   <footer>
 
-    <div class="fblock">
-      <h3>Quy định áp dụng</h3>
-      <p><strong>EMC</strong> — bắt buộc với mọi model.</p>
-      <p><strong>Công bố hợp quy (CBHQ)</strong> — áp dụng từ 01/07/2026, thay cho việc đăng ký kiểm tra chất lượng theo từng lô hàng. Hàng nhập trước 01/07/2026 đã đăng ký theo lô, còn tồn kho thì bán tiếp.</p>
-      <p><strong>Ghi chú "Đã có EMC, chưa có CBHQ"</strong> — không phải thiếu hồ sơ, mà là nhắc việc: lô nhập mới sau 01/07/2026 phải làm CBHQ trước khi bán hàng.</p>
+    <!-- ===================== TIẾNG VIỆT ===================== -->
+    <div class="l-vi">
+      <div class="fblock">
+        <h3>Quy định áp dụng</h3>
+        <p><strong>EMC</strong> — bắt buộc với:</p>
+        <ul class="fscope">
+          <li><b>WM</b> — máy giặt đến 10 kg</li>
+          <li><b>REF</b> — tất cả tủ lạnh &amp; tủ đông</li>
+          <li><b>VCC</b> — tất cả, trừ máy hút bụi chạy pin hoặc sạc điện</li>
+          <li><b>MWO</b> — tất cả</li>
+          <li><b>SAC</b> — tất cả điều hòa đến 90 KBTU, trừ: điều hòa heat pump dạng ống gió (duct) &gt; 72 KBTU, và SAC dùng điện 3 pha hoặc dòng định mức &gt; 25 A</li>
+        </ul>
+        <p><strong>Công bố hợp quy (CBHQ)</strong> — áp dụng từ 01/07/2026, thay cho việc đăng ký kiểm tra chất lượng theo từng lô hàng. Hàng nhập trước 01/07/2026 đã đăng ký theo lô, còn tồn kho thì bán tiếp.</p>
+        <p><strong>Ghi chú "Đã có EMC, chưa có CBHQ"</strong> — PM cần check model tương ứng, nếu bán hàng sau 01/07/2026 thì cần làm CBHQ trước khi bán.</p>
+      </div>
+
+      <div class="fblock">
+        <h3>Nguồn dữ liệu theo dòng sản phẩm</h3>
+        <div class="fline"><b>REF</b><span>57 Thông báo ghi nhận CBHQ (công bố 11–14/09/2026); số giấy EMC, trung tâm và ngày hiệu lực tra từ cổng NQI theo mã hồ sơ. Phần lớn do Phúc Gia cấp, 6 model dòng LB do QUACERT. B33BG và B33BGA đã chỉnh hạn về 02/07/2029 theo bản gia hạn của giấy PGC-QC09-L001-260620 (SCM xác nhận 16/09/2026) — cổng NQI vẫn ghi hạn cũ 02/09/2026. Chưa có ngày ký bản đăng ký.</span></div>
+        <div class="fline"><b>WM</b><span>18 Thông báo ghi nhận CBHQ (công bố 11/09/2026), EMC do Phúc Gia cấp, đối chiếu cổng NQI. Model T2310VBTN nằm trong folder VCC nhưng cổng NQI ghi nhận là máy giặt nên xếp vào WM.</span></div>
+        <div class="fline"><b>MWO</b><span>3 model công bố 15/09/2026, chung giấy chứng nhận VIC/24.HQ/12.09.0220 của VietnamControl.</span></div>
+        <div class="fline"><b>VCC</b><span>3 model máy hút bụi VK7317GHTP (B/R/S) chung giấy chứng nhận PGC-QC09-L001-250609.1 của Phúc Gia, công bố 15/09/2026.</span></div>
+        <div class="fline"><b>RAC</b><span>Hồ sơ EMC (QUACERT / Quatest 1) và Bản đăng ký công bố hợp quy nội bộ; ngày công bố và mã văn bản ghi nhận xác nhận qua mã QR trên Thông báo, đối chiếu cổng NQI. Ba model IDH09M2, IDH12M2, IDH18M2 có hai mã văn bản ghi nhận do hồ sơ được nộp lại.</span></div>
+        <div class="fline"><b>CAC</b><span>67 Thông báo ghi nhận CBHQ, đối chiếu trực tiếp với bản ghi trên cổng NQI. Tên model đọc từ phụ lục phạm vi chứng nhận của giấy EMC — đủ 67/67 hồ sơ, mỗi model một dòng riêng. Chưa có ngày ký bản đăng ký.<br>SAC Multi Split Pro II (cập nhật 30/09/2026): 9 giấy EMC QUACERT 1240-26-392 → 399 và 401, 8 Thông báo ghi nhận CBHQ công bố 30/09/2026 (tra cổng NQI theo mã hồ sơ in trên QR). 29 model, trong đó 18 dàn lạnh ZMN… mới thêm. Hai model Z2UW18GFD1, Z2UQ18GFD3 (giấy 1240-26-401) chưa có CBHQ, và giấy không in thời hạn hiệu lực — cần xin QUACERT xác nhận.</span></div>
+      </div>
+
+      <div class="fblock">
+        <h3>Ghi chú kỹ thuật</h3>
+        <p>Ngày cấp và ngày hết hạn EMC của nhóm chưa có CBHQ được đọc trực tiếp từ bản scan giấy chứng nhận (16/09/2026): 63 model REF và 12 model CAC. Hiện 443/445 model đã có ngày hiệu lực EMC; 2 model còn thiếu là Z2UW18GFD1 và Z2UQ18GFD3 do giấy 1240-26-401 không in thời hạn.</p>
+        <p>Trạng thái EMC tính động theo ngày mở trang; ngưỡng "sắp hết hạn" là 90 ngày trước khi hết hiệu lực.</p>
+        <p>Bản web này dùng phông hệ thống thay cho phông LG EI (phông LG EI có bản quyền riêng của LG Electronics, không đính kèm trong trang công khai) — bố cục và bảng màu vẫn theo LG BI Guidelines V5.2. Bảng màu trạng thái xanh/vàng/đỏ nằm ngoài bảng màu lõi LG, là lựa chọn riêng để đảm bảo tương phản và dễ nhận biết.</p>
+      </div>
     </div>
 
-    <div class="fblock">
-      <h3>Nguồn dữ liệu theo dòng sản phẩm</h3>
+    <!-- ===================== ENGLISH ===================== -->
+    <div class="l-en">
+      <div class="fblock">
+        <h3>Applicable regulations</h3>
+        <p><strong>EMC</strong> — mandatory for:</p>
+        <ul class="fscope">
+          <li><b>WM</b> — up to 10 kg</li>
+          <li><b>REF</b> — all refrigerators &amp; freezers</li>
+          <li><b>VCC</b> — all, except battery-operated or rechargeable vacuum cleaners</li>
+          <li><b>MWO</b> — all</li>
+          <li><b>SAC</b> — all SAC up to 90 KBTU, except: heat pump duct type &gt; 72 KBTU, and SAC using 3-phase power or rated current &gt; 25 A</li>
+        </ul>
+        <p><strong>Declaration of Conformity (DoC, "CBHQ")</strong> — applies from 01/07/2026, replacing per-lot quality inspection registration. Goods imported before 01/07/2026 were registered per lot; remaining stock may continue to be sold.</p>
+        <p><strong>Note "EMC in place, no DoC yet"</strong> — the PM should check the corresponding model; if it will be sold after 01/07/2026, the DoC must be completed before sale.</p>
+      </div>
 
-      <div class="fline"><b>REF</b><span>57 Thông báo ghi nhận CBHQ (công bố 11–14/09/2026); số giấy EMC, trung tâm và ngày hiệu lực tra từ cổng NQI theo mã hồ sơ. Phần lớn do Phúc Gia cấp, 6 model dòng LB do QUACERT. B33BG và B33BGA đã chỉnh hạn về 02/07/2029 theo bản gia hạn của giấy PGC-QC09-L001-260620 (SCM xác nhận 16/09/2026) — cổng NQI vẫn ghi hạn cũ 02/09/2026. Chưa có ngày ký bản đăng ký.</span></div>
+      <div class="fblock">
+        <h3>Data sources by product line</h3>
+        <div class="fline"><b>REF</b><span>57 DoC acknowledgement notices (published 11–14/09/2026); EMC certificate number, certification body and validity looked up on the NQI portal by filing code. Mostly issued by Phuc Gia; 6 LB-series models by QUACERT. B33BG and B33BGA expiry corrected to 02/07/2029 per the renewal of certificate PGC-QC09-L001-260620 (confirmed by SCM on 16/09/2026) — the NQI portal still shows the old expiry of 02/09/2026. Registration signing date not yet available.</span></div>
+        <div class="fline"><b>WM</b><span>18 DoC acknowledgement notices (published 11/09/2026); EMC issued by Phuc Gia, cross-checked against the NQI portal. Model T2310VBTN sits in the VCC folder, but the NQI portal records it as a washing machine, so it is listed under WM.</span></div>
+        <div class="fline"><b>MWO</b><span>3 models published 15/09/2026, sharing certificate VIC/24.HQ/12.09.0220 issued by VietnamControl.</span></div>
+        <div class="fline"><b>VCC</b><span>3 vacuum cleaner models VK7317GHTP (B/R/S) sharing certificate PGC-QC09-L001-250609.1 issued by Phuc Gia, published 15/09/2026.</span></div>
+        <div class="fline"><b>RAC</b><span>EMC files (QUACERT / Quatest 1) and internal DoC registration forms; publication date and acknowledgement reference verified via the QR code on each notice and cross-checked against the NQI portal. Models IDH09M2, IDH12M2 and IDH18M2 each have two acknowledgement references because the files were resubmitted.</span></div>
+        <div class="fline"><b>CAC</b><span>67 DoC acknowledgement notices, cross-checked directly against the NQI portal records. Model names are read from the scope annex of each EMC certificate — all 67/67 files covered, one row per model. Registration signing date not yet available.<br>SAC Multi Split Pro II (updated 30/09/2026): 9 QUACERT EMC certificates 1240-26-392 → 399 and 401, and 8 DoC acknowledgement notices published 30/09/2026 (looked up on the NQI portal by the filing code in each QR code). 29 models, including 18 newly added ZMN… indoor units. Models Z2UW18GFD1 and Z2UQ18GFD3 (certificate 1240-26-401) have no DoC yet, and the certificate does not state a validity period — confirmation from QUACERT is needed.</span></div>
+      </div>
 
-      <div class="fline"><b>WM</b><span>18 Thông báo ghi nhận CBHQ (công bố 11/09/2026), EMC do Phúc Gia cấp, đối chiếu cổng NQI. Model T2310VBTN nằm trong folder VCC nhưng cổng NQI ghi nhận là máy giặt nên xếp vào WM.</span></div>
-
-      <div class="fline"><b>MWO</b><span>3 model công bố 15/09/2026, chung giấy chứng nhận VIC/24.HQ/12.09.0220 của VietnamControl.</span></div>
-
-      <div class="fline"><b>VCC</b><span>3 model máy hút bụi VK7317GHTP (B/R/S) chung giấy chứng nhận PGC-QC09-L001-250609.1 của Phúc Gia, công bố 15/09/2026.</span></div>
-
-      <div class="fline"><b>RAC</b><span>Hồ sơ EMC (QUACERT / Quatest 1) và Bản đăng ký công bố hợp quy nội bộ; ngày công bố và mã văn bản ghi nhận xác nhận qua mã QR trên Thông báo, đối chiếu cổng NQI. Ba model IDH09M2, IDH12M2, IDH18M2 có hai mã văn bản ghi nhận do hồ sơ được nộp lại.</span></div>
-
-      <div class="fline"><b>CAC</b><span>67 Thông báo ghi nhận CBHQ, đối chiếu trực tiếp với bản ghi trên cổng NQI. Tên model đọc từ phụ lục phạm vi chứng nhận của giấy EMC — đủ 67/67 hồ sơ, mỗi model một dòng riêng. Chưa có ngày ký bản đăng ký.</span></div>
-    </div>
-
-    <div class="fblock">
-      <h3>Ghi chú kỹ thuật</h3>
-      <p>Ngày cấp và ngày hết hạn EMC của nhóm chưa có CBHQ được đọc trực tiếp từ bản scan giấy chứng nhận (16/09/2026): 63 model REF và 12 model CAC. Toàn bộ 425 model trên dashboard hiện đã có đủ ngày hiệu lực EMC.</p>
-      <p>Trạng thái EMC tính động theo ngày mở trang; ngưỡng "sắp hết hạn" là 90 ngày trước khi hết hiệu lực.</p>
-      <p>Bản web này dùng phông hệ thống thay cho phông LG EI (phông LG EI có bản quyền riêng của LG Electronics, không đính kèm trong trang công khai) — bố cục và bảng màu vẫn theo LG BI Guidelines V5.2. Bảng màu trạng thái xanh/vàng/đỏ nằm ngoài bảng màu lõi LG, là lựa chọn riêng để đảm bảo tương phản và dễ nhận biết.</p>
+      <div class="fblock">
+        <h3>Technical notes</h3>
+        <p>EMC issue and expiry dates for models without a DoC were read directly from the scanned certificates (16/09/2026): 63 REF models and 12 CAC models. 443 of 445 models now have EMC validity dates; the two without are Z2UW18GFD1 and Z2UQ18GFD3, because certificate 1240-26-401 does not print a validity period.</p>
+        <p>EMC status is calculated from the date the page is opened; "expiring" means within 90 days of expiry.</p>
+        <p>This web version uses system fonts instead of LG EI (licensed to LG Electronics and not bundled in a public page) — layout and colours still follow the LG BI Guidelines V5.2. The green/amber/red status colours sit outside the LG core palette and were chosen for contrast and legibility.</p>
+      </div>
     </div>
 
   </footer>
@@ -399,11 +510,90 @@ footer .fline b{color:var(--ink);font-weight:700}
 (function(){
   function boot(DATA){
 
-  var LINE_LABEL = { RAC: "RAC", CAC: "CAC", WM: "WM", MWO: "MWO", REF: "REF", VCC: "VCC" };
-  var STATUS_LABEL = {
-    valid:"Còn hiệu lực", expiring:"Sắp hết hạn", expired:"Đã hết hạn", unknown:"Không xác định",
-    published:"Đã công bố", signed:"Đã ký, chưa công bố", not_filed:"Chưa có CBHQ"
+  var I18N = window.__i18n || { lang:'vi', on:function(){}, apply:function(){} };
+
+  // ---- chuỗi giao diện theo ngôn ngữ / UI strings --------------------------------
+  var STR = {
+    vi: {
+      st_valid:'Còn hiệu lực', st_expiring:'Sắp hết hạn', st_expired:'Đã hết hạn', st_unknown:'Không xác định',
+      st_published:'Đã công bố', st_signed:'Đã ký, chưa công bố', st_not_filed:'Chưa có CBHQ',
+
+      k_total_records:'Tổng số bản ghi', k_total_models:'Tổng số model',
+      k_valid:'EMC còn hiệu lực', k_valid_sub:'{a} sắp hết hạn · {b} đã hết hạn',
+      k_pub:'CBHQ đã công bố', k_pub_sub:'Xác nhận trên cổng NQI',
+      k_att:'Cần theo dõi / xử lý', k_att_sub:'EMC ≤90 ngày hoặc CBHQ tồn đọng', k_att_eol:' · đã trừ {n} model EOL',
+      meta_all:'{n} bản ghi · 6 dòng sản phẩm', meta_line:'{n} model đang theo dõi',
+
+      c_valid:'Còn hiệu lực', c_expiring:'Sắp hết hạn', c_expiring_sub:'≤90 ngày',
+      c_expired:'Đã hết hạn', c_unknown:'Chưa rõ hạn', c_unknown_sub:'chưa trích xuất',
+      u_records:'bản ghi', u_models:'model',
+      eol_lbl:'EOL: ', eol_n:'<b>{n}</b> model', eol_none:'không có',
+      bars_total:'Tổng <b>{n}</b> {u}', bars_eol:' · trong đó <b>{n}</b> model EOL không cần theo dõi tiếp',
+
+      a_expired:'EMC đã hết hạn ngày {d} ({L})', b_expired:'Hết hạn',
+      a_expiring:'EMC hết hạn {d} — còn {n} ngày ({L})', b_days:'{n} ngày',
+      a_nodoc:'Đã có EMC, chưa có CBHQ — PM cần check model, nếu bán sau 01/07/2026 thì cần làm CBHQ trước khi bán ({L})', b_nodoc:'Chưa CBHQ',
+      a_signed:'Đã ký bản đăng ký {d}, chưa có xác nhận công bố ({L})', b_signed:'Đã ký',
+      a_empty:'Không có việc tồn đọng.',
+
+      t_attached:'theo danh mục đính kèm', t_rows:'Hiển thị {a} / {b} bản ghi'
+    },
+    en: {
+      st_valid:'Valid', st_expiring:'Expiring', st_expired:'Expired', st_unknown:'Unknown',
+      st_published:'Published', st_signed:'Signed, not published', st_not_filed:'No DoC yet',
+
+      k_total_records:'Total records', k_total_models:'Total models',
+      k_valid:'Valid EMC', k_valid_sub:'{a} expiring · {b} expired',
+      k_pub:'DoC published', k_pub_sub:'Confirmed on the NQI portal',
+      k_att:'Needs attention', k_att_sub:'EMC ≤90 days or pending DoC', k_att_eol:' · excl. {n} EOL models',
+      meta_all:'{n} records · 6 product lines', meta_line:'{n} models tracked',
+
+      c_valid:'Valid', c_expiring:'Expiring', c_expiring_sub:'≤90 days',
+      c_expired:'Expired', c_unknown:'Expiry unknown', c_unknown_sub:'not extracted',
+      u_records:'records', u_models:'models',
+      eol_lbl:'EOL: ', eol_n:'<b>{n}</b> models', eol_none:'none',
+      bars_total:'Total <b>{n}</b> {u}', bars_eol:' · of which <b>{n}</b> EOL models are no longer tracked',
+
+      a_expired:'EMC expired on {d} ({L})', b_expired:'Expired',
+      a_expiring:'EMC expires {d} — {n} days left ({L})', b_days:'{n} days',
+      a_nodoc:'EMC in place, no DoC yet — PM to check this model; if sold after 01/07/2026, the DoC must be completed before sale ({L})', b_nodoc:'No DoC',
+      a_signed:'Registration signed {d}, publication not yet confirmed ({L})', b_signed:'Signed',
+      a_empty:'Nothing pending.',
+
+      t_attached:'per attached list', t_rows:'Showing {a} of {b} records'
+    }
   };
+  function T(k, v){
+    var s = (STR[I18N.lang] || STR.vi)[k];
+    if (s == null) s = STR.vi[k];
+    if (s == null) return k;
+    if (v) s = s.replace(/\{(\w+)\}/g, function(_, n){ return v[n] != null ? v[n] : ''; });
+    return s;
+  }
+
+  // Mô tả tổng số model khi lọc theo một dòng sản phẩm.
+  var LINE_SUB = {
+    vi: { RAC:'Model RAC có chứng nhận EMC', CAC:'Model CAC có chứng nhận EMC',
+          WM:'Model máy giặt đã công bố hợp quy', MWO:'Model lò vi sóng đã công bố hợp quy',
+          REF:'Model tủ lạnh & tủ đông đã công bố hợp quy', VCC:'Model máy hút bụi đã công bố hợp quy' },
+    en: { RAC:'RAC models with an EMC certificate', CAC:'CAC models with an EMC certificate',
+          WM:'Washing machine models with DoC published', MWO:'Microwave oven models with DoC published',
+          REF:'Refrigerator & freezer models with DoC published', VCC:'Vacuum cleaner models with DoC published' }
+  };
+
+  // Ghi chú trong dữ liệu được viết bằng tiếng Việt — dịch khi xem bản tiếng Anh.
+  var NOTE_EN = [
+    ['EOL — còn tồn bán nốt, không nhập thêm.', 'EOL — sell remaining stock, no further imports.'],
+    ['Đã có EMC, chưa có CBHQ', 'EMC in place, no DoC yet'],
+    ['Giấy EMC không ghi thời hạn hiệu lực', 'EMC certificate does not state a validity period']
+  ];
+  function note(s){
+    if (!s || I18N.lang !== 'en') return s;
+    NOTE_EN.forEach(function(p){ s = s.split(p[0]).join(p[1]); });
+    return s;
+  }
+
+  var LINE_LABEL = { RAC: "RAC", CAC: "CAC", WM: "WM", MWO: "MWO", REF: "REF", VCC: "VCC" };
   var STATUS_CLASS = {
     valid:"ok", expiring:"warn", expired:"crit", unknown:"unknown",
     published:"ok", signed:"warn", not_filed:"warn"
@@ -435,7 +625,7 @@ footer .fline b{color:var(--ink);font-weight:700}
 
   function byLine(){ return DATA.filter(function(r){ return activeLine==='all' || r.line===activeLine; }); }
 
-  function badge(k){ return '<span class="badge '+(STATUS_CLASS[k]||'unknown')+'">'+(STATUS_LABEL[k]||k)+'</span>'; }
+  function badge(k){ return '<span class="badge '+(STATUS_CLASS[k]||'unknown')+'">'+T('st_'+k)+'</span>'; }
   function dash(v){ return v && String(v).trim() ? v : '—'; }
 
   // ---- KPI row -------------------------------------------------------------
@@ -444,24 +634,16 @@ footer .fline b{color:var(--ink);font-weight:700}
     var cbhq = {published:0,signed:0,not_filed:0};
     rows.forEach(function(r){ emc[r.emc_status]++; cbhq[r.cbhq_status]++; });
 
-    var LINE_INFO = {
-      RAC: {label:'Tổng số model', sub:'Model RAC có chứng nhận EMC', unit:'model'},
-      CAC: {label:'Tổng số model', sub:'Model CAC có chứng nhận EMC', unit:'model'},
-      WM:  {label:'Tổng số model', sub:'Model máy giặt đã công bố hợp quy', unit:'model'},
-      MWO: {label:'Tổng số model', sub:'Model lò vi sóng đã công bố hợp quy', unit:'model'},
-      REF: {label:'Tổng số model', sub:'Model tủ lạnh & tủ đông đã công bố hợp quy', unit:'model'},
-      VCC: {label:'Tổng số model', sub:'Model máy hút bụi đã công bố hợp quy', unit:'model'}
-    };
-
     var counts = {};
     rows.forEach(function(r){ counts[r.line] = (counts[r.line]||0) + 1; });
 
+    var single = LINE_SUB.vi[activeLine] != null;
     var totalLabel, totalSub;
-    if(LINE_INFO[activeLine]){
-      totalLabel = LINE_INFO[activeLine].label;
-      totalSub   = LINE_INFO[activeLine].sub;
+    if(single){
+      totalLabel = T('k_total_models');
+      totalSub   = (LINE_SUB[I18N.lang] || LINE_SUB.vi)[activeLine];
     } else {
-      totalLabel = 'Tổng số bản ghi';
+      totalLabel = T('k_total_records');
       totalSub = ['REF','WM','MWO','VCC','RAC','CAC'].filter(function(k){ return counts[k]; })
                  .map(function(k){ return counts[k] + ' ' + k; }).join(' · ');
     }
@@ -475,15 +657,13 @@ footer .fline b{color:var(--ink);font-weight:700}
 
     document.getElementById('kpis').innerHTML =
       kpi('', rows.length, totalLabel, totalSub) +
-      kpi('ok', emc.valid, 'EMC còn hiệu lực', emc.expiring+' sắp hết hạn · '+emc.expired+' đã hết hạn') +
-      kpi('', cbhq.published, 'CBHQ đã công bố', 'Xác nhận trên cổng NQI') +
-      kpi(attClass, attention, 'Cần theo dõi / xử lý',
-          'EMC ≤90 ngày hoặc CBHQ tồn đọng' + (eolCount ? ' · đã trừ '+eolCount+' model EOL' : ''));
+      kpi('ok', emc.valid, T('k_valid'), T('k_valid_sub', {a:emc.expiring, b:emc.expired})) +
+      kpi('', cbhq.published, T('k_pub'), T('k_pub_sub')) +
+      kpi(attClass, attention, T('k_att'),
+          T('k_att_sub') + (eolCount ? T('k_att_eol', {n:eolCount}) : ''));
 
     document.getElementById('metaCount').textContent =
-      activeLine==='all'
-        ? (rows.length + ' bản ghi · 6 dòng sản phẩm')
-        : (rows.length + ' ' + LINE_INFO[activeLine].unit + ' đang theo dõi');
+      single ? T('meta_line', {n:rows.length}) : T('meta_all', {n:rows.length});
     return {emc:emc, cbhq:cbhq};
   }
   function kpi(cls, num, lbl, sub){
@@ -492,15 +672,15 @@ footer .fline b{color:var(--ink);font-weight:700}
 
   // ---- biểu đồ nhỏ tách theo dòng sản phẩm (kiểu 5) --------------------------
   var STATUS_META = [
-    {k:'valid',    c:'var(--ok)',      label:'Còn hiệu lực', sub:''},
-    {k:'expiring', c:'var(--warn)',    label:'Sắp hết hạn',  sub:'≤90 ngày'},
-    {k:'expired',  c:'var(--crit)',    label:'Đã hết hạn',   sub:''},
-    {k:'unknown',  c:'var(--unknown)', label:'Chưa rõ hạn',  sub:'chưa trích xuất'}
+    {k:'valid',    c:'var(--ok)',      lab:'c_valid',    sub:''},
+    {k:'expiring', c:'var(--warn)',    lab:'c_expiring', sub:'c_expiring_sub'},
+    {k:'expired',  c:'var(--crit)',    lab:'c_expired',  sub:''},
+    {k:'unknown',  c:'var(--unknown)', lab:'c_unknown',  sub:'c_unknown_sub'}
   ];
   var LINE_ORDER = ['REF','WM','MWO','VCC','RAC','CAC'];
 
   function renderDonut(emc, rows){
-    var unit = (activeLine==='all' ? 'bản ghi' : 'model');
+    var unit = T(activeLine==='all' ? 'u_records' : 'u_models');
 
     // gom theo dòng sản phẩm
     var byL = {};
@@ -516,7 +696,7 @@ footer .fline b{color:var(--ink);font-weight:700}
       var b  = byL[L];
       var mx = Math.max(b.valid, b.expiring, b.expired, b.unknown) || 1;
       var mini = STATUS_META.map(function(s){
-        return '<div class="mrow" title="'+L+' — '+s.label+': '+b[s.k]+' '+unit+'">'+
+        return '<div class="mrow" title="'+L+' — '+T(s.lab)+': '+b[s.k]+' '+unit+'">'+
                  '<div class="mtrack"><div class="mfill" style="width:'+
                    (b[s.k]/mx*100).toFixed(1)+'%;background:'+s.c+'"></div></div>'+
                  '<span class="mn">'+b[s.k]+'</span>'+
@@ -525,20 +705,19 @@ footer .fline b{color:var(--ink);font-weight:700}
       return '<div class="cell">'+
                '<div class="hd"><b>'+L+'</b><s>'+b.tot+'</s></div>'+
                '<div class="mini">'+mini+'</div>'+
-               '<div class="eolnote">EOL: '+(b.eol ? '<b>'+b.eol+'</b> model' : 'không có')+'</div>'+
+               '<div class="eolnote">'+T('eol_lbl')+(b.eol ? T('eol_n', {n:b.eol}) : T('eol_none'))+'</div>'+
              '</div>';
     }).join('');
 
     var total = STATUS_META.reduce(function(a,s){ return a + (emc[s.k]||0); }, 0);
     document.getElementById('emclabs').innerHTML = STATUS_META.map(function(s){
-      return '<span><i style="background:'+s.c+'"></i><b>'+s.label+
-             (s.sub ? ' ('+s.sub+')' : '')+'</b> <s>'+(emc[s.k]||0)+'</s></span>';
+      return '<span><i style="background:'+s.c+'"></i><b>'+T(s.lab)+
+             (s.sub ? ' ('+T(s.sub)+')' : '')+'</b> <s>'+(emc[s.k]||0)+'</s></span>';
     }).join('');
 
     var eolTot = rows.filter(function(r){ return r.eol; }).length;
     document.getElementById('barstotal').innerHTML =
-      'Tổng <b>'+total+'</b> '+unit +
-      (eolTot ? ' · trong đó <b>'+eolTot+'</b> model EOL không cần theo dõi tiếp' : '');
+      T('bars_total', {n:total, u:unit}) + (eolTot ? T('bars_eol', {n:eolTot}) : '');
   }
 
   // ---- action panel --------------------------------------------------------
@@ -546,20 +725,21 @@ footer .fline b{color:var(--ink);font-weight:700}
     var items = [];
     rows.filter(function(r){ return !r.eol && r.emc_status==='expired'; })
         .forEach(function(r){ items.push({sort:-1, who:r.model||r.so_giay_chung_nhan,
-          desc:'EMC đã hết hạn ngày '+r.ngay_het_hieu_luc+' ('+r.line+')', badge:'crit', txt:'Hết hạn'}); });
+          desc:T('a_expired', {d:r.ngay_het_hieu_luc, L:r.line}), badge:'crit', txt:T('b_expired')}); });
 
     rows.filter(function(r){ return !r.eol && r.emc_status==='expiring'; })
         .sort(function(a,b){ return a.days_left-b.days_left; })
         .forEach(function(r){ items.push({sort:r.days_left, who:r.model||r.so_giay_chung_nhan,
-          desc:'EMC hết hạn '+r.ngay_het_hieu_luc+' — còn '+r.days_left+' ngày ('+r.line+')', badge:'warn', txt:r.days_left+' ngày'}); });
+          desc:T('a_expiring', {d:r.ngay_het_hieu_luc, n:r.days_left, L:r.line}), badge:'warn',
+          txt:T('b_days', {n:r.days_left})}); });
 
     rows.filter(function(r){ return !r.eol && r.cbhq_status==='not_filed'; })
         .forEach(function(r){ items.push({sort:9998, who:r.model||r.so_giay_chung_nhan,
-          desc:'Đã có EMC, chưa có CBHQ — lô nhập mới sau 01/07/2026 cần làm CBHQ ('+r.line+')', badge:'warn', txt:'Chưa CBHQ'}); });
+          desc:T('a_nodoc', {L:r.line}), badge:'warn', txt:T('b_nodoc')}); });
 
     rows.filter(function(r){ return !r.eol && r.cbhq_status==='signed'; })
         .forEach(function(r){ items.push({sort:9999, who:r.model||r.so_giay_chung_nhan,
-          desc:'Đã ký bản đăng ký '+r.ngay_ky_cbhq+', chưa có xác nhận công bố ('+r.line+')', badge:'warn', txt:'Đã ký'}); });
+          desc:T('a_signed', {d:r.ngay_ky_cbhq, L:r.line}), badge:'warn', txt:T('b_signed')}); });
 
     items.sort(function(a,b){ return a.sort-b.sort; });
 
@@ -568,7 +748,7 @@ footer .fline b{color:var(--ink);font-weight:700}
           return '<div class="action-item"><span class="who">'+i.who+'</span><span class="desc">'+i.desc+
                  '</span><span class="badge '+i.badge+'">'+i.txt+'</span></div>';
         }).join('')
-      : '<div class="action-empty">Không có việc tồn đọng.</div>';
+      : '<div class="action-empty">'+T('a_empty')+'</div>';
   }
 
   // ---- table ---------------------------------------------------------------
@@ -618,7 +798,7 @@ footer .fline b{color:var(--ink);font-weight:700}
     tbody.innerHTML = list.map(function(r){
       return '<tr>'+
         '<td><span class="line-tag">'+(LINE_LABEL[r.line]||r.line)+'</span></td>'+
-        (r.model ? '<td class="key-cell">'+r.model+(r.eol?' <span class="eol-tag">EOL</span>':'')+'</td>' : '<td class="na">theo danh mục đính kèm</td>')+
+        (r.model ? '<td class="key-cell">'+r.model+(r.eol?' <span class="eol-tag">EOL</span>':'')+'</td>' : '<td class="na">'+T('t_attached')+'</td>')+
         '<td class="mono">'+dash(r.so_giay_chung_nhan)+'</td>'+
         '<td>'+dash(r.ngay_chung_nhan)+'</td>'+
         '<td>'+dash(r.ngay_het_hieu_luc)+'</td>'+
@@ -628,11 +808,11 @@ footer .fline b{color:var(--ink);font-weight:700}
         '<td>'+dash(r.ngay_cong_bo)+'</td>'+
         '<td>'+badge(r.cbhq_status)+'</td>'+
         '<td class="mono">'+dash(r.ma_van_ban_ghi_nhan)+'</td>'+
-        '<td class="note-cell">'+dash(r.ghi_chu)+'</td>'+
+        '<td class="note-cell">'+dash(note(r.ghi_chu))+'</td>'+
       '</tr>';
     }).join('');
 
-    document.getElementById('rowcount').textContent = 'Hiển thị '+list.length+' / '+rows.length+' bản ghi';
+    document.getElementById('rowcount').textContent = T('t_rows', {a:list.length, b:rows.length});
   }
 
   function renderAll(){
@@ -675,6 +855,9 @@ footer .fline b{color:var(--ink);font-weight:700}
     });
   });
 
+  // Đổi ngôn ngữ thì vẽ lại toàn bộ phần sinh bằng JS; phần tĩnh tự đổi qua CSS.
+  I18N.on(function(){ renderAll(); });
+  I18N.apply();
   renderAll();
   }
 
@@ -691,6 +874,18 @@ footer .fline b{color:var(--ink);font-weight:700}
   var msg  = document.getElementById('gateMsg');
 
   function say(t, cls){ msg.textContent = t; msg.className = 'msg' + (cls ? ' ' + cls : ''); }
+  var GM = {
+    vi: { https:'Trang cần mở qua https hoặc localhost thì trình duyệt mới cho giải mã.',
+          busy:'Đang kiểm tra…', fail:'ID hoặc mật khẩu không đúng.',
+          load:'Không tải được {f} (HTTP {s})', err:'Lỗi: ' },
+    en: { https:'This page must be opened over https or localhost for the browser to allow decryption.',
+          busy:'Checking…', fail:'Incorrect ID or password.',
+          load:'Could not load {f} (HTTP {s})', err:'Error: ' }
+  };
+  function M(k, f, st){
+    var L = (window.__i18n && window.__i18n.lang) || 'vi';
+    return (GM[L] || GM.vi)[k].replace('{f}', f || '').replace('{s}', st || '');
+  }
   function b64(b){
     var bin = atob(b), out = new Uint8Array(bin.length);
     for (var i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
@@ -723,14 +918,14 @@ footer .fline b{color:var(--ink);font-weight:700}
   form.addEventListener('submit', async function(e){
     e.preventDefault();
     if (!window.isSecureContext) {
-      say('Trang cần mở qua https hoặc localhost thì trình duyệt mới cho giải mã.', 'err');
+      say(M('https'), 'err');
       return;
     }
     btn.disabled = true;
-    say('Đang kiểm tra…', 'busy');
+    say(M('busy'), 'busy');
     try {
       var acc = await fetch('access.json', { cache:'no-store' });
-      if (!acc.ok) throw new Error('Không tải được access.json (HTTP ' + acc.status + ')');
+      if (!acc.ok) throw new Error(M('load', 'access.json', acc.status));
       var users = await acc.json();
       var list = users.users || users;
 
@@ -741,7 +936,7 @@ footer .fline b{color:var(--ink);font-weight:700}
 
       // Same message whether the ID is unknown or the password is wrong, so the form
       // cannot be used to enumerate who has access.
-      var FAIL = 'ID hoặc mật khẩu không đúng.';
+      var FAIL = M('fail');
       if (!entry) { throw { auth:true, message: FAIL }; }
 
       var dataKey;
@@ -752,19 +947,21 @@ footer .fline b{color:var(--ink);font-weight:700}
       }
 
       var res = await fetch('data.enc.json', { cache:'no-store' });
-      if (!res.ok) throw new Error('Không tải được data.enc.json (HTTP ' + res.status + ')');
+      if (!res.ok) throw new Error(M('load', 'data.enc.json', res.status));
       var data = await decryptData(dataKey, await res.json());
 
       document.getElementById('gate').remove();
       window.__bootDashboard(data);
     } catch (err) {
       btn.disabled = false;
-      say(err && err.auth ? err.message : ('Lỗi: ' + (err && err.message ? err.message : err)), 'err');
+      say(err && err.auth ? err.message : (M('err') + (err && err.message ? err.message : err)), 'err');
       pw.value = '';
       pw.focus();
     }
   });
 
+  // Đổi ngôn ngữ thì xoá thông báo cũ để không lẫn hai thứ tiếng.
+  if (window.__i18n) { window.__i18n.apply(); window.__i18n.on(function(){ say(''); }); }
   uid.focus();
 })();
 </script>
